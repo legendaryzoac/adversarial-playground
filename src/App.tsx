@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type * as tf from '@tensorflow/tfjs'
+import SiteNav from './components/SiteNav'
+import SiteFooter from './components/SiteFooter'
 import DrawingCanvas from './components/DrawingCanvas'
 import ConfidenceBars from './components/ConfidenceBars'
 import MnistPreview from './components/MnistPreview'
@@ -44,14 +46,17 @@ export default function App() {
   )
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="mx-auto max-w-5xl px-4 py-10">
-        <header className="mb-8">
-          <p className="mb-1 font-mono text-xs tracking-widest text-cyan-400 uppercase">
-            AI Safety Lab
+    <div className="min-h-screen">
+      <SiteNav />
+      <div className="mx-auto max-w-5xl px-4 pt-[60px] pb-4">
+        <header className="mt-10 mb-8">
+          <p className="text-accent mb-2 font-mono text-xs tracking-widest uppercase">
+            // AI Safety Lab
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">Adversarial Playground</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
+          <h1 className="font-display text-3xl font-bold tracking-tight">
+            Adversarial Playground
+          </h1>
+          <p className="text-muted mt-3 max-w-2xl text-sm leading-relaxed">
             A convolutional neural network runs live in your browser — no server, no API.
             Draw a digit and watch it classify. Soon: attack it with adversarial
             perturbations that are invisible to you but devastating to the model.
@@ -66,23 +71,23 @@ export default function App() {
         )}
 
         <main className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-            <h2 className="mb-1 text-sm font-semibold text-zinc-200">1 · Draw a digit</h2>
-            <p className="mb-4 text-xs text-zinc-500">Any digit, 0–9. Prediction updates as you draw.</p>
+          <section className="border-line bg-panel rounded-xl border p-5">
+            <h2 className="font-display mb-1 text-sm font-semibold">1 · Draw a digit</h2>
+            <p className="text-muted mb-4 text-xs">Any digit, 0–9. Prediction updates as you draw.</p>
             <DrawingCanvas onDraw={handleDraw} />
           </section>
 
-          <section className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-            <h2 className="mb-1 text-sm font-semibold text-zinc-200">2 · Model prediction</h2>
-            <p className="mb-4 text-xs text-zinc-500">
+          <section className="border-line bg-panel rounded-xl border p-5">
+            <h2 className="font-display mb-1 text-sm font-semibold">2 · Model prediction</h2>
+            <p className="text-muted mb-4 text-xs">
               {status === 'loading' ? 'Loading model…' : 'Softmax confidence per class.'}
             </p>
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
-                <div className="font-mono text-5xl font-bold text-cyan-300">
+                <div className="text-accent font-mono text-5xl font-bold">
                   {input ? input.prediction.label : '·'}
                 </div>
-                <div className="mt-1 text-xs text-zinc-500">
+                <div className="text-muted mt-1 text-xs">
                   {input
                     ? `${(input.prediction.probs[input.prediction.label] * 100).toFixed(1)}% confident`
                     : 'waiting for a drawing'}
@@ -93,28 +98,28 @@ export default function App() {
             <ConfidenceBars probs={input?.prediction.probs ?? null} />
           </section>
 
-          <section className="rounded-xl border border-dashed border-zinc-800 bg-zinc-900/30 p-5 md:col-span-2 lg:col-span-1">
-            <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-zinc-400">
+          <section className="border-line bg-panel/40 rounded-xl border border-dashed p-5 md:col-span-2 lg:col-span-1">
+            <h2 className="font-display text-muted mb-1 flex items-center gap-2 text-sm font-semibold">
               3 · Attack the model
-              <span className="rounded-full border border-amber-700/60 bg-amber-950/40 px-2 py-0.5 text-[10px] font-medium tracking-wide text-amber-400 uppercase">
+              <span className="rounded-full border border-amber-700/60 bg-amber-950/40 px-2 py-0.5 font-mono text-[10px] font-medium tracking-wide text-amber-400 uppercase">
                 coming soon
               </span>
             </h2>
-            <p className="mb-4 text-xs text-zinc-500">
+            <p className="text-muted mb-4 text-xs">
               FGSM &amp; PGD attacks computed live with in-browser gradients. A perturbation you
               can barely see will flip the prediction.
             </p>
             <div className="space-y-4 opacity-40 select-none" aria-hidden="true">
               <div>
-                <div className="mb-1 flex justify-between text-xs text-zinc-400">
+                <div className="text-muted mb-1 flex justify-between text-xs">
                   <span>Perturbation strength ε</span>
                   <span className="font-mono">0.15</span>
                 </div>
-                <input type="range" disabled className="w-full accent-cyan-400" />
+                <input type="range" disabled className="accent-accent w-full" />
               </div>
               <button
                 disabled
-                className="w-full rounded-md border border-zinc-700 py-2 text-sm text-zinc-400"
+                className="border-line text-muted font-display w-full rounded-md border py-2 text-sm"
               >
                 Run FGSM attack
               </button>
@@ -122,10 +127,11 @@ export default function App() {
           </section>
         </main>
 
-        <footer className="mt-10 border-t border-zinc-800/60 pt-4 text-xs text-zinc-600">
-          Runs entirely client-side with TensorFlow.js · trained on MNIST ·{' '}
-          {model ? `${model.countParams().toLocaleString()} parameters` : 'model loading…'}
-        </footer>
+        <SiteFooter
+          note={`Runs entirely client-side with TensorFlow.js · trained on MNIST · ${
+            model ? `${model.countParams().toLocaleString()} parameters` : 'model loading…'
+          }`}
+        />
       </div>
     </div>
   )

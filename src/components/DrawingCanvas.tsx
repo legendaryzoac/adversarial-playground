@@ -92,12 +92,12 @@ export default function DrawingCanvas({ onDraw }: Props) {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className="w-full max-w-[280px] cursor-crosshair touch-none rounded-lg border border-zinc-700 bg-black shadow-inner"
+        className="border-line w-full max-w-[280px] cursor-crosshair touch-none rounded-lg border bg-black shadow-inner"
         aria-label="Drawing canvas — draw a digit from 0 to 9"
       />
       <button
         onClick={handleClear}
-        className="rounded-md border border-zinc-700 px-4 py-1.5 text-sm text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+        className="border-line text-muted font-display hover:border-accent hover:text-fg rounded-md border px-4 py-1.5 text-sm transition-colors"
       >
         Clear
       </button>

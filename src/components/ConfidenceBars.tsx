@@ -13,18 +13,18 @@ export default function ConfidenceBars({ probs }: Props) {
         const isTop = digit === top
         return (
           <div key={digit} role="listitem" className="flex items-center gap-2 text-sm">
-            <span className={`w-4 text-right font-mono ${isTop ? 'font-bold text-cyan-300' : 'text-zinc-500'}`}>
+            <span className={`w-4 text-right font-mono ${isTop ? 'text-accent font-bold' : 'text-muted'}`}>
               {digit}
             </span>
-            <div className="h-4 flex-1 overflow-hidden rounded-sm bg-zinc-800">
+            <div className="bg-panel-2 h-4 flex-1 overflow-hidden rounded-sm">
               <div
                 className={`h-full rounded-sm transition-[width] duration-150 ease-out ${
-                  isTop ? 'bg-cyan-400' : 'bg-zinc-600'
+                  isTop ? 'bg-accent' : 'bg-line'
                 }`}
                 style={{ width: `${(p * 100).toFixed(1)}%` }}
               />
             </div>
-            <span className={`w-12 text-right font-mono text-xs ${isTop ? 'text-cyan-300' : 'text-zinc-500'}`}>
+            <span className={`w-12 text-right font-mono text-xs ${isTop ? 'text-accent' : 'text-muted'}`}>
               {probs ? `${(p * 100).toFixed(1)}%` : '—'}
             </span>
           </div>

@@ -40,10 +40,10 @@ export default function MnistPreview({ pixels, label, amplify = 1 }: Props) {
         ref={canvasRef}
         width={IMAGE_SIZE}
         height={IMAGE_SIZE}
-        className="size-20 rounded border border-zinc-700 bg-black [image-rendering:pixelated]"
+        className="border-line size-20 rounded border bg-black [image-rendering:pixelated]"
         aria-label={label ?? 'Model input'}
       />
-      {label && <figcaption className="text-xs text-zinc-500">{label}</figcaption>}
+      {label && <figcaption className="text-muted text-xs">{label}</figcaption>}
     </figure>
   )
 }
