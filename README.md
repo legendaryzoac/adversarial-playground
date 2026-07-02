@@ -37,16 +37,3 @@ directly from the logits.
 2. **Milestone 2** — FGSM attack: ε slider, amplified-perturbation view, adversarial prediction panel (see `src/lib/attacks.ts`)
 3. **Milestone 3** — PGD (animated iterations), targeted attacks, explainer content
 4. **Stretch** — MobileNetV2 photo mode, webcam input, preprocessing-defense toggle
-
-## Deploy
-
-`.github/workflows/deploy.yml` builds and syncs `dist/` to an S3 bucket behind
-CloudFront, authenticating via GitHub OIDC (no long-lived AWS keys). Set these
-repository settings before the first run:
-
-| Where | Name | Value |
-| --- | --- | --- |
-| Variables | `AWS_REGION` | e.g. `us-east-1` |
-| Variables | `S3_BUCKET` | your bucket name |
-| Variables | `CLOUDFRONT_DISTRIBUTION_ID` | e.g. `E1ABC234DEF` |
-| Secrets | `AWS_ROLE_ARN` | IAM role trusted by GitHub OIDC |
