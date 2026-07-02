@@ -2,72 +2,96 @@
 //
 // The model outputs LOGITS (softmax lives in mnist.ts), so the loss here is
 // softmaxCrossEntropy(oneHot(label), logits) — numerically clean to
-// differentiate. Attacks map pixels -> perturbed pixels; App re-predicts on
-// the result.
+// differentiate. Attacks map pixels -> perturbed pixels; the frame's own
+// probs come from the same forward pass so the UI can plot them per step.
 import * as tf from '@tensorflow/tfjs'
+import { IMAGE_SIZE, NUM_CLASSES } from './mnist'
 
 export type AttackKind = 'fgsm' | 'pgd'
 
 export interface AttackConfig {
+  kind: AttackKind
   /** Max L∞ perturbation, in [0, 1] pixel units. Interesting range ~0.05–0.3. */
   epsilon: number
-  /** PGD only: number of gradient steps. */
+  /** PGD only: number of gradient steps (default 10). */
   steps?: number
-  /** PGD only: step size per iteration (defaults to epsilon / steps * 2.5). */
+  /** PGD only: per-step size (default 2.5·ε/steps, the Madry et al. rule). */
   stepSize?: number
-  /** If set, targeted attack: minimize loss toward this class instead. */
+  /** If set, targeted attack: drive the prediction toward this class. */
   targetClass?: number
 }
 
-export interface AttackResult {
-  /** Perturbed image, same shape as the input, clipped to [0, 1]. */
+export interface AttackFrame {
+  /** Perturbed image, clipped to [0, 1]. */
   adversarial: Float32Array
   /** adversarial - original (for the amplified perturbation view). */
   perturbation: Float32Array
+  /** Softmax probabilities at this step. */
+  probs: number[]
+  /** argmax of probs. */
+  label: number
+}
+
+function argmax(a: ArrayLike<number>): number {
+  let m = 0
+  for (let i = 1; i < a.length; i++) if (a[i] > a[m]) m = i
+  return m
 }
 
 /**
- * Fast Gradient Sign Method (Goodfellow et al. 2014):
- *   x_adv = clip(x + ε · sign(∇ₓ L(f(x), y)), 0, 1)
+ * Runs FGSM or PGD and returns one frame per gradient step (FGSM = 1 frame,
+ * PGD = `steps` frames) so the UI can animate the iterations.
  *
- * One gradient step in the direction that most increases the loss for the
- * model's current prediction. `label` should be the class to attack away
- * from (normally the model's own prediction).
+ * Untargeted (no targetClass): ascend the loss for `sourceLabel`, pushing the
+ * model away from the right answer —  x ← x + α·sign(∇ₓL).
+ * Targeted: descend the loss toward `targetClass`, pulling the model to a
+ * chosen wrong answer —  x ← x − α·sign(∇ₓL).
+ *
+ * PGD (Madry et al. 2017) is iterated FGSM with the running perturbation
+ * projected back into the L∞ ε-ball after every step. Starts from the clean
+ * image (no random init) so the animation reads as a smooth, reproducible
+ * descent.
  */
-export function fgsm(
+export function runAttack(
   model: tf.LayersModel,
   pixels: Float32Array,
-  label: number,
+  sourceLabel: number,
   config: AttackConfig,
-): AttackResult {
-  return tf.tidy(() => {
-    const input = tf.tensor4d(pixels, [1, 28, 28, 1])
-    const oneHot = tf.oneHot([label], 10)
-    const lossFromInput = (x: tf.Tensor): tf.Scalar => {
-      // model.apply (not .predict) so ops are recorded for tf.grad.
-      const logits = model.apply(x) as tf.Tensor2D
-      return tf.losses.softmaxCrossEntropy(oneHot, logits).asScalar()
-    }
-    const grad = tf.grad(lossFromInput)(input)
-    const adversarial = input.add(grad.sign().mul(config.epsilon)).clipByValue(0, 1)
-    // Report the *effective* perturbation (post-clip), not ε·sign itself.
-    const perturbation = adversarial.sub(input)
-    return {
-      adversarial: adversarial.dataSync() as Float32Array,
-      perturbation: perturbation.dataSync() as Float32Array,
-    }
-  })
-}
+): AttackFrame[] {
+  const targeted = config.targetClass !== undefined
+  const attackLabel = targeted ? config.targetClass! : sourceLabel
+  const direction = targeted ? -1 : 1
+  const steps = config.kind === 'fgsm' ? 1 : config.steps ?? 10
+  const stepSize =
+    config.kind === 'fgsm' ? config.epsilon : config.stepSize ?? (2.5 * config.epsilon) / steps
 
-/**
- * Projected Gradient Descent (Madry et al. 2017): iterated FGSM with the
- * perturbation projected back into the ε-ball after each step. Milestone 3.
- */
-export function pgd(
-  _model: tf.LayersModel,
-  _pixels: Float32Array,
-  _label: number,
-  _config: AttackConfig,
-): AttackResult {
-  throw new Error('Not implemented until milestone 3')
+  const frames: AttackFrame[] = []
+  let current = pixels
+  for (let i = 0; i < steps; i++) {
+    const out = tf.tidy(() => {
+      const orig = tf.tensor4d(pixels, [1, IMAGE_SIZE, IMAGE_SIZE, 1])
+      const adv = tf.tensor4d(current, [1, IMAGE_SIZE, IMAGE_SIZE, 1])
+      const oneHot = tf.oneHot([attackLabel], NUM_CLASSES)
+      const lossFromInput = (x: tf.Tensor): tf.Scalar =>
+        tf.losses.softmaxCrossEntropy(oneHot, model.apply(x) as tf.Tensor2D).asScalar()
+      const grad = tf.grad(lossFromInput)(adv)
+      const stepped = adv.add(grad.sign().mul(stepSize * direction))
+      // Project back into the ε-ball around the original, then to valid pixels.
+      const delta = stepped.sub(orig).clipByValue(-config.epsilon, config.epsilon)
+      const next = orig.add(delta).clipByValue(0, 1)
+      return {
+        probs: Array.from(tf.softmax(model.apply(next) as tf.Tensor2D).dataSync() as Float32Array),
+        perturbation: next.sub(orig).dataSync() as Float32Array,
+        adversarial: next.dataSync() as Float32Array,
+      }
+    })
+    current = out.adversarial
+    frames.push({
+      adversarial: out.adversarial,
+      perturbation: out.perturbation,
+      probs: out.probs,
+      label: argmax(out.probs),
+    })
+  }
+  return frames
 }
