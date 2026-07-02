@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Train the model — Adversarial Playground</title>
+    <style>
+      body { background: #09090b; color: #e4e4e7; font-family: ui-monospace, monospace; padding: 2rem; }
+      #log { white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
+      button { background: #164e63; color: #cffafe; border: 1px solid #155e75; padding: 8px 16px; border-radius: 6px; cursor: pointer; font: inherit; }
+      button:disabled { opacity: 0.4; cursor: default; }
+    </style>
+  </head>
+  <body>
+    <h1>Train the MNIST classifier in your browser</h1>
+    <p>
+      Trains the demo's CNN on the WebGL backend and downloads the TF.js artifacts.
+      Drop <code>model.json</code> + <code>weights.bin</code> into <code>public/model/</code>.
+    </p>
+    <button id="start">Start training</button>
+    <button id="download" disabled>Download model</button>
+    <div id="log"></div>
+    <script type="module" src="/training/browser-train.ts"></script>
+  </body>
+</html>

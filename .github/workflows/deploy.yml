@@ -1,0 +1,55 @@
+name: Deploy to S3 + CloudFront
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # OIDC federation with AWS — no long-lived keys
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # Hashed assets get immutable long-lived caching; everything else
+      # (index.html, the model files) revalidates so deploys show up fast.
+      - name: Sync assets (immutable, long cache)
+        run: >
+          aws s3 sync dist/assets "s3://${{ vars.S3_BUCKET }}/assets"
+          --delete
+          --cache-control "public,max-age=31536000,immutable"
+
+      - name: Sync everything else (short cache)
+        run: >
+          aws s3 sync dist "s3://${{ vars.S3_BUCKET }}"
+          --exclude "assets/*"
+          --delete
+          --cache-control "public,max-age=60"
+
+      - name: Invalidate CloudFront
+        run: >
+          aws cloudfront create-invalidation
+          --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+          --paths "/index.html" "/model/*"
