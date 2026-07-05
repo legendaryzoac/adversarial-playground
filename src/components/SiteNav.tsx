@@ -19,12 +19,12 @@ export default function SiteNav() {
       </div>
       <div className="flex items-center gap-6">
         <a
-          href="https://blog.zackwithers.com"
+          href="https://interp.zackwithers.com"
           target="_blank"
           rel="noopener"
           className="font-display text-muted hover:text-fg hidden text-sm font-medium transition-colors sm:block"
         >
-          Blog
+          Interp ↗
         </a>
         <a
           href="https://github.com/legendaryzoac/adversarial-playground"
