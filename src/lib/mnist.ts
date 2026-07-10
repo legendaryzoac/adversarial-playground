@@ -1,7 +1,16 @@
 import * as tf from '@tensorflow/tfjs'
+import type { AttackSpec } from './attacks'
 
 export const NUM_CLASSES = 10
 export const IMAGE_SIZE = 28
+
+/** Attack-engine spec for the MNIST classifier. */
+export const MNIST_SPEC: AttackSpec = {
+  inputShape: [IMAGE_SIZE, IMAGE_SIZE, 1],
+  numClasses: NUM_CLASSES,
+  clip: [0, 1],
+  outputsLogits: true,
+}
 
 export interface Prediction {
   /** Softmax probabilities, length 10. */

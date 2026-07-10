@@ -1,9 +1,15 @@
 # Adversarial Playground
 
-An interactive AI-safety demo: a convolutional neural network runs **entirely in your
-browser** with [TensorFlow.js](https://www.tensorflow.org/js) — no server, no API keys.
-Draw a digit, watch the model classify it live, then (milestone 2) attack it with
-adversarial perturbations (FGSM / PGD) computed client-side with real input gradients.
+An interactive AI-safety demo: neural networks run **entirely in your browser** with
+[TensorFlow.js](https://www.tensorflow.org/js) — no server, no API keys. Two modes:
+
+- **Draw a digit** — a tiny MNIST CNN classifies your drawing live, then you attack it.
+- **Attack a photo** — MobileNet (a real 1000-class ImageNet model) classifies an
+  uploaded image, then a gradient-crafted perturbation you can barely see flips it
+  ("Labrador retriever" → "doormat").
+
+Both attacks (FGSM / PGD, targeted or untargeted) are computed client-side with real
+input gradients — the whole point is that the model is differentiable w.r.t. its pixels.
 
 **Stack:** Vite · React 19 · TypeScript · Tailwind CSS 4 · TensorFlow.js
 
@@ -31,9 +37,23 @@ layer intentionally outputs **logits** (no softmax): the app applies `tf.softmax
 display, and the adversarial attacks compute `∇ₓ softmaxCrossEntropy(y, logits)`
 directly from the logits.
 
+## How the photo mode works
+
+`src/lib/attacks.ts` is model-agnostic: an `AttackSpec` describes the input shape,
+class count, pixel range, and whether the model emits logits or probabilities, so the
+same FGSM/PGD code drives both the MNIST CNN (`[28,28,1]`, logits, `[0,1]`) and MobileNet
+(`[224,224,3]`, softmax, `[-1,1]`). MobileNet is
+[MobileNet v1 (1.0, 224)](https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224/model.json),
+loaded as a **LayersModel** so `tf.grad` can flow to the input (a GraphModel could
+classify but not be attacked). Its ~16 MB of weights come from Google's CDN, so they
+cost the S3 bucket no egress; the backward-pass shaders are compiled during the loading
+bar so the first attack is snappy. Heavy attacks run through `runAttackProgressive`,
+which yields between gradient steps so the PGD descent animates instead of freezing.
+
 ## Roadmap
 
-1. ~~**Milestone 1** — draw a digit, live in-browser classification with confidence bars~~
-2. **Milestone 2** — FGSM attack: ε slider, amplified-perturbation view, adversarial prediction panel (see `src/lib/attacks.ts`)
-3. **Milestone 3** — PGD (animated iterations), targeted attacks, explainer content
-4. **Stretch** — MobileNetV2 photo mode, webcam input, preprocessing-defense toggle
+1. ~~**Milestone 1** — draw a digit, live in-browser MNIST classification~~
+2. ~~**Milestone 2** — FGSM attack: ε slider, amplified-perturbation view, adversarial prediction panel~~
+3. ~~**Milestone 3** — PGD (animated iterations), targeted attacks, explainer content~~
+4. ~~**Milestone 5 (stretch)** — MobileNet photo mode: upload/sample images, top-5 predictions, FGSM/PGD/targeted attacks on a real ImageNet classifier~~
+5. **Later** — webcam input; a preprocessing-defense toggle (blur/JPEG) to show why defenses are hard
